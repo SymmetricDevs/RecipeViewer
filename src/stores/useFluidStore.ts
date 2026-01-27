@@ -44,7 +44,7 @@ export const useFluidStore = create<FluidStore>((set, get) => ({
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(fluid =>
-        fluid.fluidLocalizedName.toLowerCase().includes(query) ||
+        fluid.localizedName.toLowerCase().includes(query) ||
         fluid.fluidName.toLowerCase().includes(query)
       );
     }

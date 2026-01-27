@@ -1,15 +1,16 @@
 export interface FluidStack {
   type: 'FluidStack';
-  localizedName: string;
+  specificLocalizedName: string;
   unlocalizedName: string;
   amount: number;
 }
 
 export interface Fluid {
   fluidName: string;
-  fluidUnlocalizedName: string;
-  fluidLocalizedName: string;
+  unlocalizedName: string;
+  localizedName: string;
   fluidColor: number;
+  hasCustomTexture?: boolean;
   fluidDensity: number;
   fluidRarity: string;
   fluidViscosity: number;
