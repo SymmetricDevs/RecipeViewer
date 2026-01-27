@@ -1,15 +1,21 @@
 export interface ItemStack {
-  type: 'ItemStack';
-  displayName: string;
+  type?: 'ItemStack';
+  displayName?: string;
+  resource: string;
   count?: number;
   metadata?: number;
   itemDamage?: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   nbt?: any;
 }
 
-export interface Item extends ItemStack {
+// Item with displayName always present (from items.json)
+export interface ItemWithDisplay extends ItemStack {
+  displayName: string;
+}
+
+export interface Item extends ItemWithDisplay {
   translationKey: string;
-  resource: string;
   maxDamage: number;
   repairCost: number;
   hasSubtypes: boolean;

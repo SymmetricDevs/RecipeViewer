@@ -1,6 +1,6 @@
-# Susy Recipe Viewer
+# Supersymmetry Recipe Viewer
 
-A web-based recipe viewer for the Supersymmetry (Susy) Minecraft modpack. Browse through thousands of items, fluids, and recipes without having to open the game.
+A web-based recipe viewer for the Supersymmetry (SUSY) Minecraft modpack. Browse through thousands of items, fluids, and recipes without having to open the game.
 
 ## Features
 

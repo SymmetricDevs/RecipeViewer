@@ -1,4 +1,5 @@
 import { inflate } from 'pako';
+import type { ItemRecipeIndex, FluidRecipeIndex } from '../types/recipeIndex';
 
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
 
@@ -109,6 +110,20 @@ export async function loadFluidSearchIndex() {
  */
 export async function loadMetadata() {
   return loadCompressedJSON<any>('metadata.json.gz');
+}
+
+/**
+ * Loads item recipe index
+ */
+export async function loadItemRecipeIndex(): Promise<ItemRecipeIndex> {
+  return loadCompressedJSON<ItemRecipeIndex>('indexes/recipe-index-items.json.gz');
+}
+
+/**
+ * Loads fluid recipe index
+ */
+export async function loadFluidRecipeIndex(): Promise<FluidRecipeIndex> {
+  return loadCompressedJSON<FluidRecipeIndex>('indexes/recipe-index-fluids.json.gz');
 }
 
 /**

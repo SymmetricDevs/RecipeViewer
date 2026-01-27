@@ -72,6 +72,7 @@ export interface CraftingRecipe {
   registryName: string;
   type: 'shaped' | 'shapeless' | 'shapelessOre' | 'unknown';
   recipe: ShapedRecipe | ShapelessRecipe | null;
+  output?: ItemStack;
 }
 
 export interface SmeltingRecipe {

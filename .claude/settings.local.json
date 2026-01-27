@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "Bash(node --version)",
+      "Bash(npm install)",
+      "Bash(file:*)",
+      "Bash(curl:*)",
+      "Bash(tree:*)",
+      "Bash(git -C /home/bruberu/ps/susy-recipe-viewer log --oneline -5)",
+      "Bash(git -C /home/bruberu/ps/susy-recipe-viewer config --list)",
+      "Bash(zcat:*)",
+      "Bash(du -sh * recipemaps/*)",
+      "Bash(npm run lint:*)",
+      "Bash(npm run build:*)",
+      "Bash(pkill:*)",
+      "Bash(npm run process-data:*)",
+      "Bash(npx tsc:*)",
+      "Bash(gunzip:*)"
+    ]
+  }
+}
