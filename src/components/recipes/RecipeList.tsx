@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { LoadedRecipe } from '../../types/recipeIndex';
 import type { Recipe, CraftingRecipe, SmeltingRecipe } from '../../types/recipes';
 import MachineRecipeCard from './MachineRecipeCard';
@@ -10,15 +10,22 @@ interface RecipeListProps {
   asOutput: LoadedRecipe[];
   loading?: boolean;
   error?: string | null;
+  initialTab?: 'output' | 'input';
 }
 
 type Tab = 'output' | 'input';
 
 const RECIPES_PER_PAGE = 25;
 
-function RecipeList({ asInput, asOutput, loading, error }: RecipeListProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('output');
+function RecipeList({ asInput, asOutput, loading, error, initialTab = 'output' }: RecipeListProps) {
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Sync activeTab with initialTab when it changes (e.g., from URL query param)
+  useEffect(() => {
+    setActiveTab(initialTab);
+    setCurrentPage(1);
+  }, [initialTab]);
 
   const renderRecipe = (loaded: LoadedRecipe, index: number) => {
     const { ref, recipe, mapName } = loaded;

@@ -80,7 +80,7 @@ function ItemsPage() {
             return (
               <Link
                 key={startIndex + index}
-                to={`/items/${items.indexOf(item)}`}
+                to={`/items/${encodeURIComponent(item.resource)}/${item.itemDamage ?? 0}`}
                 className="flex items-center p-4 border-b border-gray-700 hover:bg-gray-750 transition block"
               >
                 <div className="flex-1">

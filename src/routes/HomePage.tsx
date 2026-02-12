@@ -74,9 +74,9 @@ function HomePage() {
               <h2 className="text-2xl font-bold text-gray-100">Recipes</h2>
             </div>
             <p className="text-3xl font-bold text-cyan-400">
-              {stats.recipemaps.toLocaleString()}
+              {stats.totalRecipes?.toLocaleString() || 'N/A'}
             </p>
-            <p className="text-gray-400 mt-2">Recipe maps</p>
+            <p className="text-gray-400 mt-2">Total recipes</p>
           </div>
         </div>
       )}
@@ -89,9 +89,10 @@ function HomePage() {
         <ul className="list-disc list-inside text-gray-400 space-y-2">
           <li>{stats?.items.toLocaleString()} unique items</li>
           <li>{stats?.fluids.toLocaleString()} fluids</li>
-          <li>{stats?.crafting.toLocaleString()} crafting recipes</li>
-          <li>{stats?.smelting.toLocaleString()} smelting recipes</li>
-          <li>{stats?.recipemaps.toLocaleString()} GregTech recipe maps</li>
+          <li>{stats?.totalRecipes?.toLocaleString()} total recipes</li>
+          <li className="ml-4">{stats?.crafting.toLocaleString()} crafting recipes</li>
+          <li className="ml-4">{stats?.smelting.toLocaleString()} smelting recipes</li>
+          <li className="ml-4">{stats?.machineRecipes?.toLocaleString()} machine recipes across {stats?.recipemaps.toLocaleString()} recipe maps</li>
           <li>{stats?.machines.toLocaleString()} machines</li>
         </ul>
       </div>

@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useFluidStore } from '../../stores/useFluidStore';
 import { useEffect, useMemo } from 'react';
+import { FLUID_COLOR_OVERRIDES } from '../fluids/FluidOverrides';
 
 interface FluidSlotProps {
   unlocalizedName: string;
@@ -18,6 +19,7 @@ function FluidSlot({
   className = '',
 }: FluidSlotProps) {
   const { fluids, fetchFluids } = useFluidStore();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (fluids.length === 0) {
@@ -26,38 +28,49 @@ function FluidSlot({
   }, [fluids.length, fetchFluids]);
 
   // Derive fluid info from fluids array
-  const { fluidIndex, displayName, color, hasCustomTexture } = useMemo(() => {
+  const { displayName, color, hasCustomTexture, fluid } = useMemo(() => {
+    // Check for color override first
+    const colorOverride = FLUID_COLOR_OVERRIDES[unlocalizedName];
+
     if (fluids.length === 0) {
       return {
-        fluidIndex: null,
         displayName: localizedName || unlocalizedName.replace('fluid.', ''),
-        color: '#3b82f6',
+        color: colorOverride || '#3b82f6',
         hasCustomTexture: false,
+        fluid: null,
       };
     }
 
-    const idx = fluids.findIndex(
-      (fluid) => fluid.unlocalizedName === unlocalizedName
+    const foundFluid = fluids.find(
+      (f) => f.unlocalizedName === unlocalizedName
     );
 
-    if (idx !== -1) {
-      const fluid = fluids[idx];
-      const colorInt = fluid.fluidColor;
+    if (foundFluid) {
+      const colorInt = foundFluid.fluidColor;
       return {
-        fluidIndex: idx,
-        displayName: fluid.localizedName || localizedName || unlocalizedName.replace('fluid.', ''),
-        color: `#${colorInt.toString(16).padStart(6, '0')}`,
-        hasCustomTexture: fluid.hasCustomTexture || false,
+        displayName: foundFluid.localizedName || localizedName || unlocalizedName.replace('fluid.', ''),
+        color: colorOverride || `#${colorInt.toString(16).padStart(6, '0')}`,
+        // If we have a color override, don't use custom texture styling
+        hasCustomTexture: colorOverride ? false : (foundFluid.hasCustomTexture || false),
+        fluid: foundFluid,
       };
     }
 
     return {
-      fluidIndex: null,
       displayName: localizedName || unlocalizedName.replace('fluid.', ''),
-      color: '#3b82f6',
+      color: colorOverride || '#3b82f6',
       hasCustomTexture: false,
+      fluid: null,
     };
   }, [fluids, unlocalizedName, localizedName]);
+
+  // Handle right-click to go to "as input" tab
+  const handleContextMenu = (e: React.MouseEvent) => {
+    if (fluid) {
+      e.preventDefault();
+      navigate(`/fluids/${encodeURIComponent(fluid.unlocalizedName)}?tab=input`);
+    }
+  };
 
   // Format amount (mB)
   const formatAmount = (mb: number): string => {
@@ -113,9 +126,13 @@ function FluidSlot({
     </div>
   );
 
-  if (fluidIndex !== null) {
+  if (fluid) {
     return (
-      <Link to={`/fluids/${fluidIndex}`} className="block">
+      <Link
+        to={`/fluids/${encodeURIComponent(fluid.unlocalizedName)}`}
+        className="block"
+        onContextMenu={handleContextMenu}
+      >
         {content}
       </Link>
     );

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useFluidStore } from '../stores/useFluidStore';
 import { Link } from 'react-router-dom';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { FLUID_COLOR_OVERRIDES } from '../components/fluids/FluidOverrides';
 
 const FLUIDS_PER_PAGE = 50;
 
@@ -77,11 +78,12 @@ function FluidsPage() {
         <div>
           {paginatedFluids.map((fluid, index) => {
             const color = fluid.fluidColor;
-            const hex = `#${color.toString(16).padStart(6, '0')}`;
+            const colorOverride = FLUID_COLOR_OVERRIDES[fluid.unlocalizedName];
+            const hex = colorOverride || `#${color.toString(16).padStart(6, '0')}`;
             return (
               <Link
                 key={startIndex + index}
-                to={`/fluids/${fluids.indexOf(fluid)}`}
+                to={`/fluids/${encodeURIComponent(fluid.unlocalizedName)}`}
                 className="flex items-center p-4 border-b border-gray-700 hover:bg-gray-750 transition block"
               >
                 <div

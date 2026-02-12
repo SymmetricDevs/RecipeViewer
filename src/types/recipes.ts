@@ -4,7 +4,7 @@ import type { FluidStack, ChancedFluidOutput, Fluid } from './fluids';
 export interface GTRecipeInput {
   class: string;
   amount: number;
-  oreDict: string;
+  oreDict: number;  // Index into oreDict keys array, -1 if not using oreDict
   sortingOrder: number;
   nonConsumable: boolean;
   inputStacks: ItemStack[];
