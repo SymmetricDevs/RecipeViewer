@@ -31,3 +31,5 @@ public/data/
 
 # Large source file - comment this out if you want to commit it
 # recipedump.json
+
+.claude

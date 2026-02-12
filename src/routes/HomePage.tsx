@@ -84,9 +84,7 @@ function HomePage() {
       <div className="bg-gray-800 rounded-lg shadow-md p-8 border border-gray-700">
         <h2 className="text-2xl font-bold text-gray-100 mb-4">About</h2>
         <p className="text-gray-400 mb-4">
-          This recipe viewer helps you explore the vast content of the Supersymmetry
-          modpack. Browse through thousands of items, fluids, and recipes without
-          having to open the game.
+          This reference contains (almost) every single recipe in the Supersymmetry modpack (as of v0.1.16-rc2), along with all of its items and fluids.
         </p>
         <ul className="list-disc list-inside text-gray-400 space-y-2">
           <li>{stats?.items.toLocaleString()} unique items</li>
