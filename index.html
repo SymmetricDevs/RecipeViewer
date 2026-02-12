@@ -4,7 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image" href="/RecipeViewer/icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>susy-recipe-viewer</title>
+    <title>Susy Recipe Viewer</title>
+    <script>
+      // Handle SPA redirect from 404.html
+      (function() {
+        var redirectPath = sessionStorage.getItem('redirectPath');
+        if (redirectPath) {
+          sessionStorage.removeItem('redirectPath');
+          history.replaceState(null, '', redirectPath);
+        }
+      })();
+    </script>
     <script type="module" crossorigin src="/RecipeViewer/assets/index-D5KGc2l5.js"></script>
     <link rel="stylesheet" crossorigin href="/RecipeViewer/assets/index-Bl-h11fW.css">
   </head>

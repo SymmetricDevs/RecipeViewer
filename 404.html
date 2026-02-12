@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Redirecting...</title>
+    <script>
+      // Single Page App GitHub Pages redirect
+      // This script takes the current URL path and redirects to index.html
+      // with the path stored in sessionStorage, which index.html then reads
+      // to restore the correct route.
+      var pathSegmentsToKeep = 1; // Keep /RecipeViewer/ base path
+      var l = window.location;
+      var path = l.pathname.split('/').slice(pathSegmentsToKeep + 1).join('/');
+      var search = l.search;
+      var hash = l.hash;
+
+      // Store the path in sessionStorage
+      sessionStorage.setItem('redirectPath', '/' + path + search + hash);
+
+      // Redirect to the base URL
+      l.replace(
+        l.protocol + '//' + l.hostname + (l.port ? ':' + l.port : '') +
+        l.pathname.split('/').slice(0, pathSegmentsToKeep + 1).join('/') + '/'
+      );
+    </script>
+  </head>
+  <body>
+    Redirecting...
+  </body>
+</html>
