@@ -15,9 +15,9 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/items" element={<ItemsPage />} />
-            <Route path="/items/:id" element={<ItemDetailPage />} />
+            <Route path="/items/:resource/:damage" element={<ItemDetailPage />} />
             <Route path="/fluids" element={<FluidsPage />} />
-            <Route path="/fluids/:id" element={<FluidDetailPage />} />
+            <Route path="/fluids/:unlocalizedName" element={<FluidDetailPage />} />
           </Routes>
         </main>
       </div>

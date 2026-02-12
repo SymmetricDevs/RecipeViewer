@@ -77,6 +77,18 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
   const itemIndex: ItemRecipeIndex = {};
   const fluidIndex: FluidRecipeIndex = {};
 
+  // Build oreDict lookup: index -> oreDict name
+  const oreDictKeys = Object.keys(data.oreDict);
+
+  // Helper to get all items for an oreDict index
+  const getOreDictItems = (oreDictIndex: number): any[] => {
+    if (oreDictIndex < 0 || oreDictIndex >= oreDictKeys.length) {
+      return [];
+    }
+    const oreDictName = oreDictKeys[oreDictIndex];
+    return data.oreDict[oreDictName] || [];
+  };
+
   // Process smelting recipes
   console.log('  Indexing smelting recipes...');
   data.smelting.forEach((recipe, index) => {
@@ -154,7 +166,17 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
       // Item inputs
       if (recipe.inputs) {
         for (const input of recipe.inputs) {
-          if (input.inputStacks) {
+          // Check if this input uses an OreDict entry
+          if (input.oreDict !== undefined && input.oreDict >= 0) {
+            // Index all items in the OreDict entry
+            const oreDictItems = getOreDictItems(input.oreDict);
+            for (const item of oreDictItems) {
+              if (item.resource) {
+                addItemToIndex(itemIndex, item.resource, item.itemDamage ?? 0, ref, false);
+              }
+            }
+          } else if (input.inputStacks) {
+            // No OreDict, use inputStacks directly
             for (const stack of input.inputStacks) {
               if (stack.resource) {
                 addItemToIndex(itemIndex, stack.resource, stack.itemDamage ?? 0, ref, false);
@@ -305,6 +327,12 @@ async function processRecipeDump() {
   const data: RecipeDump = JSON.parse(fs.readFileSync(RECIPE_DUMP_PATH, 'utf-8'));
   console.log('✓ Loaded successfully\n');
 
+  // Calculate total machine recipes across all recipe maps
+  const machineRecipeCount = Object.values(data.recipemaps).reduce(
+    (sum, mapData: any) => sum + (mapData.recipes?.length || 0),
+    0
+  );
+
   // Statistics
   const stats = {
     items: data.items.length,
@@ -314,6 +342,8 @@ async function processRecipeDump() {
     smelting: data.smelting.length,
     machines: Object.keys(data.gtMTEs).length,
     oreDict: Object.keys(data.oreDict).length,
+    machineRecipes: machineRecipeCount,
+    totalRecipes: data.crafting.length + data.smelting.length + machineRecipeCount,
   };
 
   console.log('Data Statistics:');
@@ -322,6 +352,8 @@ async function processRecipeDump() {
   console.log(`  Recipe Maps: ${stats.recipemaps.toLocaleString()}`);
   console.log(`  Crafting Recipes: ${stats.crafting.toLocaleString()}`);
   console.log(`  Smelting Recipes: ${stats.smelting.toLocaleString()}`);
+  console.log(`  Machine Recipes: ${stats.machineRecipes.toLocaleString()}`);
+  console.log(`  Total Recipes: ${stats.totalRecipes.toLocaleString()}`);
   console.log(`  Machines: ${stats.machines.toLocaleString()}`);
   console.log(`  Ore Dictionary Entries: ${stats.oreDict.toLocaleString()}`);
   console.log('');

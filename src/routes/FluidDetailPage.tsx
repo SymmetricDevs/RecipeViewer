@@ -1,14 +1,18 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useFluidStore } from '../stores/useFluidStore';
 import { useRecipeStore } from '../stores/useRecipeStore';
 import { ArrowLeft } from 'lucide-react';
 import { RecipeList } from '../components/recipes';
 import type { RecipesForFluid } from '../types/recipeIndex';
+import { FLUID_COLOR_OVERRIDES } from '../components/fluids/FluidOverrides';
+
 
 function FluidDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { fluids, fetchFluids, getFluidById } = useFluidStore();
+  const { unlocalizedName: urlUnlocalizedName } = useParams<{ unlocalizedName: string }>();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'input' ? 'input' : 'output';
+  const { fluids, fetchFluids, getFluidByUnlocalizedName } = useFluidStore();
   const { getRecipesForFluid, indexLoading, indexError } = useRecipeStore();
   const [fluid, setFluid] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -20,14 +24,15 @@ function FluidDetailPage() {
       if (fluids.length === 0) {
         await fetchFluids();
       }
-      if (id) {
-        const foundFluid = getFluidById(parseInt(id));
+      if (urlUnlocalizedName) {
+        const decodedName = decodeURIComponent(urlUnlocalizedName);
+        const foundFluid = getFluidByUnlocalizedName(decodedName);
         setFluid(foundFluid);
         setLoading(false);
       }
     };
     loadFluid();
-  }, [id, fluids]);
+  }, [urlUnlocalizedName, fluids]);
 
   useEffect(() => {
     const loadRecipes = async () => {
@@ -63,7 +68,8 @@ function FluidDetailPage() {
   }
 
   const color = fluid.fluidColor;
-  const hex = `#${color.toString(16).padStart(6, '0')}`;
+  const colorOverride = FLUID_COLOR_OVERRIDES[fluid.unlocalizedName];
+  const hex = colorOverride || `#${color.toString(16).padStart(6, '0')}`;
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -139,6 +145,7 @@ function FluidDetailPage() {
               asOutput={recipes?.asOutput || []}
               loading={recipesLoading || indexLoading}
               error={indexError}
+              initialTab={initialTab}
             />
           </div>
         </div>

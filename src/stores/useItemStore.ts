@@ -16,6 +16,7 @@ interface ItemStore {
   setModFilter: (mod: string | null) => void;
   setRarityFilter: (rarity: string | null) => void;
   getItemById: (index: number) => Item | null;
+  getItemByResourceAndDamage: (resource: string, damage: number) => Item | null;
   applyFilters: () => void;
 }
 
@@ -82,5 +83,12 @@ export const useItemStore = create<ItemStore>((set, get) => ({
   getItemById: (index: number) => {
     const { items } = get();
     return items[index] || null;
+  },
+
+  getItemByResourceAndDamage: (resource: string, damage: number) => {
+    const { items } = get();
+    return items.find(
+      (item) => item.resource === resource && item.itemDamage === damage
+    ) || null;
   },
 }));

@@ -6,12 +6,23 @@ interface CraftingRecipeCardProps {
   recipe: CraftingRecipe;
 }
 
+interface ValidInput {
+  resource: string;
+  itemDamage?: number;
+  count?: number;
+  nbt?: any;
+}
+
+interface Ingredient {
+  validInputs?: ValidInput[];
+}
+
 function CraftingRecipeCard({ recipe }: CraftingRecipeCardProps) {
   const isShapeless = recipe.type === 'shapeless' || recipe.type === 'shapelessOre';
 
   // Extract ingredients based on recipe type
   const renderShapedGrid = (shapedRecipe: ShapedRecipe) => {
-    type GridItem = { resource: string; itemDamage?: number; count?: number } | null;
+    type GridItem = { ingredient: Ingredient } | null;
     const grid: GridItem[][] = [
       [null, null, null],
       [null, null, null],
@@ -26,32 +37,48 @@ function CraftingRecipeCard({ recipe }: CraftingRecipeCardProps) {
       chars.forEach((char, colIdx) => {
         if (colIdx >= 3) return;
         if (char !== ' ' && shapedRecipe.keymap?.[char]) {
-          const ingredient = shapedRecipe.keymap[char];
-          const firstInput = ingredient.validInputs?.[0];
-          if (firstInput) {
-            grid[rowIdx][colIdx] = firstInput;
-          }
+          grid[rowIdx][colIdx] = { ingredient: shapedRecipe.keymap[char] };
         }
       });
     });
 
     return (
       <div className="grid grid-cols-3 gap-1">
-        {grid.flat().map((item, idx) =>
-          item ? (
+        {grid.flat().map((item, idx) => {
+          if (!item) {
+            return (
+              <div
+                key={idx}
+                className="w-24 h-24 bg-gray-700 border border-gray-600 rounded"
+              />
+            );
+          }
+
+          const firstInput = item.ingredient.validInputs?.[0];
+          if (!firstInput) {
+            return (
+              <div
+                key={idx}
+                className="w-24 h-24 bg-gray-700 border border-gray-600 rounded"
+              />
+            );
+          }
+
+          // Get alternatives if there are multiple validInputs
+          const alternatives = item.ingredient.validInputs && item.ingredient.validInputs.length > 1
+            ? item.ingredient.validInputs
+            : undefined;
+
+          return (
             <ItemSlot
               key={idx}
-              resource={item.resource}
-              itemDamage={item.itemDamage ?? 0}
-              count={item.count || 1}
+              resource={firstInput.resource}
+              itemDamage={firstInput.itemDamage ?? 0}
+              count={firstInput.count || 1}
+              alternatives={alternatives}
             />
-          ) : (
-            <div
-              key={idx}
-              className="w-24 h-24 bg-gray-700 border border-gray-600 rounded"
-            />
-          )
-        )}
+          );
+        })}
       </div>
     );
   };
@@ -73,12 +100,19 @@ function CraftingRecipeCard({ recipe }: CraftingRecipeCardProps) {
         {ingredients.map((ingredient, idx) => {
           const firstInput = ingredient.validInputs?.[0];
           if (!firstInput) return null;
+
+          // Get alternatives if there are multiple validInputs
+          const alternatives = ingredient.validInputs && ingredient.validInputs.length > 1
+            ? ingredient.validInputs
+            : undefined;
+
           return (
             <ItemSlot
               key={idx}
               resource={firstInput.resource}
               itemDamage={firstInput.itemDamage ?? 0}
               count={firstInput.count || 1}
+              alternatives={alternatives}
             />
           );
         })}

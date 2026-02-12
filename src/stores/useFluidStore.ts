@@ -12,6 +12,7 @@ interface FluidStore {
   fetchFluids: () => Promise<void>;
   setSearchQuery: (query: string) => void;
   getFluidById: (index: number) => Fluid | null;
+  getFluidByUnlocalizedName: (unlocalizedName: string) => Fluid | null;
   applyFilters: () => void;
 }
 
@@ -55,5 +56,10 @@ export const useFluidStore = create<FluidStore>((set, get) => ({
   getFluidById: (index: number) => {
     const { fluids } = get();
     return fluids[index] || null;
+  },
+
+  getFluidByUnlocalizedName: (unlocalizedName: string) => {
+    const { fluids } = get();
+    return fluids.find((fluid) => fluid.unlocalizedName === unlocalizedName) || null;
   },
 }));

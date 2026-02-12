@@ -16,7 +16,8 @@
       "Bash(pkill:*)",
       "Bash(npm run process-data:*)",
       "Bash(npx tsc:*)",
-      "Bash(gunzip:*)"
+      "Bash(gunzip:*)",
+      "Bash(python3:*)"
     ]
   }
 }

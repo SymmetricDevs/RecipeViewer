@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useItemStore } from '../stores/useItemStore';
 import { useRecipeStore } from '../stores/useRecipeStore';
 import { ArrowLeft } from 'lucide-react';
@@ -7,8 +7,10 @@ import { RecipeList } from '../components/recipes';
 import type { RecipesForItem } from '../types/recipeIndex';
 
 function ItemDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { items, fetchItems, getItemById } = useItemStore();
+  const { resource, damage } = useParams<{ resource: string; damage: string }>();
+  const [searchParams] = useSearchParams();
+  const initialTab = searchParams.get('tab') === 'input' ? 'input' : 'output';
+  const { items, fetchItems, getItemByResourceAndDamage } = useItemStore();
   const { getRecipesForItem, indexLoading, indexError } = useRecipeStore();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -20,14 +22,15 @@ function ItemDetailPage() {
       if (items.length === 0) {
         await fetchItems();
       }
-      if (id) {
-        const foundItem = getItemById(parseInt(id));
+      if (resource && damage) {
+        const decodedResource = decodeURIComponent(resource);
+        const foundItem = getItemByResourceAndDamage(decodedResource, parseInt(damage));
         setItem(foundItem);
         setLoading(false);
       }
     };
     loadItem();
-  }, [id, items]);
+  }, [resource, damage, items]);
 
   useEffect(() => {
     const loadRecipes = async () => {
@@ -127,6 +130,7 @@ function ItemDetailPage() {
               asOutput={recipes?.asOutput || []}
               loading={recipesLoading || indexLoading}
               error={indexError}
+              initialTab={initialTab}
             />
           </div>
         </div>

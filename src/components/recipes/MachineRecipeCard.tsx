@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { ArrowRight, Zap, Clock } from 'lucide-react';
 import ItemSlot from './ItemSlot';
 import FluidSlot from './FluidSlot';
 import type { Recipe } from '../../types/recipes';
+import { useOreDictStore } from '../../stores/useOreDictStore';
 
 interface MachineRecipeCardProps {
   recipe: Recipe;
@@ -9,6 +11,12 @@ interface MachineRecipeCardProps {
 }
 
 function MachineRecipeCard({ recipe, mapName }: MachineRecipeCardProps) {
+  const { fetchOreDict, getOreDictName } = useOreDictStore();
+
+  useEffect(() => {
+    fetchOreDict();
+  }, [fetchOreDict]);
+
   // Format duration in ticks to seconds
   const formatDuration = (ticks: number): string => {
     const seconds = ticks / 20;
@@ -67,6 +75,18 @@ function MachineRecipeCard({ recipe, mapName }: MachineRecipeCardProps) {
             {recipe.inputs?.map((input, idx) => {
               const stack = input.inputStacks?.[0];
               if (!stack?.resource) return null;
+
+              // Get oreDict name if this input uses an oreDict
+              const oreDictIndex = input.oreDict;
+              const oreDictName = oreDictIndex !== undefined && oreDictIndex >= 0
+                ? getOreDictName(oreDictIndex)
+                : undefined;
+
+              // Get alternatives if there are multiple inputStacks
+              const alternatives = input.inputStacks && input.inputStacks.length > 1
+                ? input.inputStacks
+                : undefined;
+
               return (
                 <ItemSlot
                   key={`item-${idx}`}
@@ -75,6 +95,8 @@ function MachineRecipeCard({ recipe, mapName }: MachineRecipeCardProps) {
                   count={input.amount || stack.count || 1}
                   nonConsumable={input.nonConsumable}
                   nbt={stack.nbt}
+                  alternatives={alternatives}
+                  oreDictName={oreDictName}
                 />
               );
             })}
