@@ -8,7 +8,7 @@ import FluidDetailPage from './routes/FluidDetailPage';
 
 function App() {
   return (
-    <Router basename="/susy-recipe-viewer">
+    <Router basename="/RecipeViewer">
       <div className="min-h-screen bg-gray-900">
         <Header />
         <main className="container mx-auto px-6 py-8">

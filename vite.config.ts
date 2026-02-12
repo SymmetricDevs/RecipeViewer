@@ -25,7 +25,7 @@ export default defineConfig({
       },
     },
   ],
-  base: '/susy-recipe-viewer/',
+  base: '/RecipeViewer/',
   build: {
     outDir: 'docs',
   },
