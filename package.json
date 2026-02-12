@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "process-data": "tsx scripts/process-recipedump.ts"
+    "process-data": "tsx scripts/process-recipedump.ts",
+    "generate-og": "tsx scripts/generate-og-pages.ts"
   },
   "dependencies": {
     "fuse.js": "^7.1.0",
