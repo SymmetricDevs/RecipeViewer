@@ -204,7 +204,7 @@ async function generateOGPages() {
       descParts.push(`Used in ${inputCount} recipes, produced by ${outputCount} recipes`);
       const description = descParts.join(' | ');
 
-      // URL-encode the resource (handles colons and special chars)
+      // URL-encode the resource for og:url (handles colons and special chars)
       const encodedResource = encodeURIComponent(resource);
       const url = `${BASE_URL}/items/${encodedResource}/${damage}`;
 
@@ -213,11 +213,12 @@ async function generateOGPages() {
       const ogTags = generateOGTags(title, description, url);
       const html = injectOGTags(template, ogTags, title);
 
-      // Create directory structure: items/{encoded-resource}/
-      const itemDir = path.join(itemsDir, encodedResource);
+      // Create directory structure: items/{resource}/
+      // Use raw resource name - GitHub Pages decodes URL-encoded requests
+      const itemDir = path.join(itemsDir, resource);
       ensureDir(itemDir);
 
-      // Write file: items/{encoded-resource}/{damage}.html
+      // Write file: items/{resource}/{damage}.html
       fs.writeFileSync(path.join(itemDir, `${damage}.html`), html);
       itemCount++;
 
@@ -251,7 +252,7 @@ async function generateOGPages() {
       // Build description
       const description = `${unlocalizedName} | Used in ${inputCount} recipes, produced by ${outputCount} recipes`;
 
-      // URL-encode the unlocalized name
+      // URL-encode the unlocalized name for og:url
       const encodedName = encodeURIComponent(unlocalizedName);
       const url = `${BASE_URL}/fluids/${encodedName}`;
 
@@ -260,8 +261,9 @@ async function generateOGPages() {
       const ogTags = generateOGTags(title, description, url);
       const html = injectOGTags(template, ogTags, title);
 
-      // Write file: fluids/{encoded-name}.html
-      fs.writeFileSync(path.join(fluidsDir, `${encodedName}.html`), html);
+      // Write file: fluids/{unlocalizedName}.html
+      // Use raw name - GitHub Pages decodes URL-encoded requests
+      fs.writeFileSync(path.join(fluidsDir, `${unlocalizedName}.html`), html);
       fluidCount++;
 
       if (fluidCount % 500 === 0) {
