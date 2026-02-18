@@ -25,11 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Copy recipedump.json from Susy-Core
+      - name: Verify recipedump.json.gz
         run: |
-          # This assumes recipedump.json is committed to the repo
-          # Alternatively, download from a release or external source
-          echo "Using committed recipedump.json"
+          # recipedump.json.gz is committed to the repo (~3MB compressed)
+          echo "Using committed recipedump.json.gz"
+          ls -lh recipedump.json.gz
 
       - name: Process recipe data
         run: npm run process-data

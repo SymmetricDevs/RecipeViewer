@@ -30,3 +30,6 @@ docs
 public/data/
 
 .claude
+
+# Raw uncompressed recipe dump - use recipedump.json.gz instead
+recipedump.json

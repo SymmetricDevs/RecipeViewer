@@ -1,12 +1,13 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { gzipSync } from 'zlib';
+import { gzipSync, gunzipSync } from 'zlib';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const RECIPE_DUMP_PATH = path.join(__dirname, '../recipedump.json');
+const RECIPE_DUMP_PATH = path.join(__dirname, '../recipedump.json.gz');
+const RECIPE_DUMP_PATH_UNCOMPRESSED = path.join(__dirname, '../recipedump.json');
 const OUTPUT_DIR = path.join(__dirname, '../public/data');
 const RECIPEMAPS_DIR = path.join(OUTPUT_DIR, 'recipemaps');
 const INDEXES_DIR = path.join(OUTPUT_DIR, 'indexes');
@@ -312,10 +313,12 @@ function buildFluidIndex(fluids: any[]) {
 async function processRecipeDump() {
   console.log('Starting recipe dump processing...\n');
 
-  // Check if source file exists
-  if (!fs.existsSync(RECIPE_DUMP_PATH)) {
-    console.error(`Error: recipedump.json not found at ${RECIPE_DUMP_PATH}`);
-    console.error('Please run /recipemapdump in-game first.');
+  // Check if source file exists (prefer .gz, fall back to uncompressed)
+  const useCompressed = fs.existsSync(RECIPE_DUMP_PATH);
+  const useUncompressed = fs.existsSync(RECIPE_DUMP_PATH_UNCOMPRESSED);
+  if (!useCompressed && !useUncompressed) {
+    console.error(`Error: recipedump.json.gz not found at ${RECIPE_DUMP_PATH}`);
+    console.error('Please run /recipemapdump in-game first, then compress with: gzip -k recipedump.json');
     process.exit(1);
   }
 
@@ -323,8 +326,15 @@ async function processRecipeDump() {
   ensureDirectories();
 
   // Load the recipe dump
-  console.log('Loading recipedump.json...');
-  const data: RecipeDump = JSON.parse(fs.readFileSync(RECIPE_DUMP_PATH, 'utf-8'));
+  if (useCompressed) {
+    console.log('Loading recipedump.json.gz...');
+  } else {
+    console.log('Loading recipedump.json (uncompressed)...');
+  }
+  const rawData = useCompressed
+    ? gunzipSync(fs.readFileSync(RECIPE_DUMP_PATH)).toString('utf-8')
+    : fs.readFileSync(RECIPE_DUMP_PATH_UNCOMPRESSED, 'utf-8');
+  const data: RecipeDump = JSON.parse(rawData);
   console.log('✓ Loaded successfully\n');
 
   // Calculate total machine recipes across all recipe maps
