@@ -19,7 +19,8 @@
       "Bash(gunzip:*)",
       "Bash(python3:*)",
       "Bash(npm run generate-og:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(ls:*)"
     ]
   }
 }
