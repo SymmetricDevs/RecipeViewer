@@ -2,14 +2,17 @@ import { create } from 'zustand';
 import type {
   ItemRecipeIndex,
   FluidRecipeIndex,
+  MaterialRecipeIndex,
   RecipeRef,
   LoadedRecipe,
   RecipesForItem,
   RecipesForFluid,
+  RecipesForMaterial,
 } from '../types/recipeIndex';
 import {
   loadItemRecipeIndex,
   loadFluidRecipeIndex,
+  loadMaterialRecipeIndex,
   loadRecipeMap,
   loadCrafting,
   loadSmelting,
@@ -19,6 +22,7 @@ interface RecipeStore {
   // Indexes
   itemRecipeIndex: ItemRecipeIndex | null;
   fluidRecipeIndex: FluidRecipeIndex | null;
+  materialRecipeIndex: MaterialRecipeIndex | null;
   indexLoading: boolean;
   indexError: string | null;
 
@@ -29,14 +33,16 @@ interface RecipeStore {
 
   // Actions
   fetchRecipeIndexes: () => Promise<void>;
-  getRecipesForItem: (resource: string, itemDamage: number) => Promise<RecipesForItem>;
+  getRecipesForItem: (resource: string, metadata: number) => Promise<RecipesForItem>;
   getRecipesForFluid: (unlocalizedName: string) => Promise<RecipesForFluid>;
+  getRecipesForMaterial: (unlocalizedName: string) => Promise<RecipesForMaterial>;
   loadRecipeDetails: (refs: RecipeRef[]) => Promise<LoadedRecipe[]>;
 }
 
 export const useRecipeStore = create<RecipeStore>((set, get) => ({
   itemRecipeIndex: null,
   fluidRecipeIndex: null,
+  materialRecipeIndex: null,
   indexLoading: false,
   indexError: null,
 
@@ -45,21 +51,23 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
   smeltingRecipes: null,
 
   fetchRecipeIndexes: async () => {
-    const { itemRecipeIndex, fluidRecipeIndex, indexLoading } = get();
+    const { itemRecipeIndex, fluidRecipeIndex, materialRecipeIndex, indexLoading } = get();
 
     // Already loaded or loading
-    if (itemRecipeIndex && fluidRecipeIndex) return;
+    if (itemRecipeIndex && fluidRecipeIndex && materialRecipeIndex) return;
     if (indexLoading) return;
 
     set({ indexLoading: true, indexError: null });
     try {
-      const [itemIdx, fluidIdx] = await Promise.all([
+      const [itemIdx, fluidIdx, matIdx] = await Promise.all([
         loadItemRecipeIndex(),
         loadFluidRecipeIndex(),
+        loadMaterialRecipeIndex(),
       ]);
       set({
         itemRecipeIndex: itemIdx,
         fluidRecipeIndex: fluidIdx,
+        materialRecipeIndex: matIdx,
         indexLoading: false,
       });
     } catch (error) {
@@ -70,7 +78,7 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     }
   },
 
-  getRecipesForItem: async (resource: string, itemDamage: number): Promise<RecipesForItem> => {
+  getRecipesForItem: async (resource: string, metadata: number): Promise<RecipesForItem> => {
     const { itemRecipeIndex, fetchRecipeIndexes, loadRecipeDetails } = get();
 
     // Ensure indexes are loaded
@@ -84,7 +92,7 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     }
 
     // Build key and look up
-    const key = `${resource}:${itemDamage}`;
+    const key = `${resource}:${metadata}`;
     const entry = index[key];
 
     // Also check for wildcard matches (32767)
@@ -95,8 +103,8 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     const inputRefs = [...(entry?.asInput || [])];
     const outputRefs = [...(entry?.asOutput || [])];
 
-    // Add wildcard refs if the item damage is not already wildcard
-    if (itemDamage !== 32767 && wildcardEntry) {
+    // Add wildcard refs if the metadata is not already wildcard
+    if (metadata !== 32767 && wildcardEntry) {
       inputRefs.push(...wildcardEntry.asInput);
       outputRefs.push(...wildcardEntry.asOutput);
     }
@@ -134,6 +142,32 @@ export const useRecipeStore = create<RecipeStore>((set, get) => ({
     ]);
 
     return { asInput, asOutput };
+  },
+
+  getRecipesForMaterial: async (unlocalizedName: string): Promise<RecipesForMaterial> => {
+    const { materialRecipeIndex, fetchRecipeIndexes, loadRecipeDetails } = get();
+
+    if (!materialRecipeIndex) {
+      await fetchRecipeIndexes();
+    }
+
+    const index = get().materialRecipeIndex;
+    if (!index) {
+      return { production: [], interconversion: [], other: [] };
+    }
+
+    const entry = index[unlocalizedName];
+    if (!entry) {
+      return { production: [], interconversion: [], other: [] };
+    }
+
+    const [production, interconversion, other] = await Promise.all([
+      loadRecipeDetails(entry.production),
+      loadRecipeDetails(entry.interconversion),
+      loadRecipeDetails(entry.other),
+    ]);
+
+    return { production, interconversion, other };
   },
 
   loadRecipeDetails: async (refs: RecipeRef[]): Promise<LoadedRecipe[]> => {

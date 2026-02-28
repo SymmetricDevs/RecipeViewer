@@ -1,23 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useFluidStore } from '../stores/useFluidStore';
-import { useRecipeStore } from '../stores/useRecipeStore';
 import { ArrowLeft } from 'lucide-react';
-import { RecipeList } from '../components/recipes';
-import type { RecipesForFluid } from '../types/recipeIndex';
+import RecipeSearchPanel from '../components/search/RecipeSearchPanel';
+import { loadFluidToMaterial } from '../services/dataLoader';
+import type { SearchEntity } from '../types/recipeSearch';
 import { FLUID_COLOR_OVERRIDES } from '../components/fluids/FluidOverrides';
 
 
 function FluidDetailPage() {
   const { unlocalizedName: urlUnlocalizedName } = useParams<{ unlocalizedName: string }>();
   const [searchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'input' ? 'input' : 'output';
+  const initialTab = searchParams.get('tab') === 'input' ? 1 : 0;
   const { fluids, fetchFluids, getFluidByUnlocalizedName } = useFluidStore();
-  const { getRecipesForFluid, indexLoading, indexError } = useRecipeStore();
   const [fluid, setFluid] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [recipes, setRecipes] = useState<RecipesForFluid | null>(null);
-  const [recipesLoading, setRecipesLoading] = useState(false);
+  const [materialInfo, setMaterialInfo] = useState<{ unlocalizedName: string; localizedName: string } | null>(null);
 
   useEffect(() => {
     const loadFluid = async () => {
@@ -34,21 +32,35 @@ function FluidDetailPage() {
     loadFluid();
   }, [urlUnlocalizedName, fluids]);
 
+  const searchEntity = useMemo<SearchEntity | undefined>(() => {
+    if (!fluid) return undefined;
+    return {
+      type: 'fluid',
+      key: fluid.unlocalizedName,
+      displayName: fluid.localizedName,
+    };
+  }, [fluid]);
+
+  const tabs = useMemo(() => {
+    if (!searchEntity) return undefined;
+    return [
+      { label: 'As Output', query: { outputs: [searchEntity] } },
+      { label: 'As Input', query: { inputs: [searchEntity] } },
+    ];
+  }, [searchEntity]);
+
   useEffect(() => {
-    const loadRecipes = async () => {
+    const loadMaterialInfo = async () => {
       if (fluid) {
-        setRecipesLoading(true);
         try {
-          const fluidRecipes = await getRecipesForFluid(fluid.unlocalizedName);
-          setRecipes(fluidRecipes);
-        } catch (err) {
-          console.error('Failed to load recipes:', err);
-        } finally {
-          setRecipesLoading(false);
+          const fluidToMat = await loadFluidToMaterial();
+          setMaterialInfo(fluidToMat[fluid.unlocalizedName] || null);
+        } catch {
+          // Material lookup is optional
         }
       }
     };
-    loadRecipes();
+    loadMaterialInfo();
   }, [fluid]);
 
   if (loading) {
@@ -133,22 +145,35 @@ function FluidDetailPage() {
                 <dt className="text-sm font-medium text-gray-400">Rarity</dt>
                 <dd className="text-gray-100">{fluid.fluidRarity}</dd>
               </div>
+              {materialInfo && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-400">Material</dt>
+                  <dd>
+                    <Link
+                      to={`/materials/${encodeURIComponent(materialInfo.unlocalizedName)}`}
+                      className="text-cyan-400 hover:text-cyan-300 transition"
+                    >
+                      {materialInfo.localizedName}
+                    </Link>
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         </div>
 
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">Recipes</h2>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
-            <RecipeList
-              asInput={recipes?.asInput || []}
-              asOutput={recipes?.asOutput || []}
-              loading={recipesLoading || indexLoading}
-              error={indexError}
-              initialTab={initialTab}
-            />
+        {searchEntity && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold text-gray-200 mb-4">Recipes</h2>
+            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              <RecipeSearchPanel
+                contextEntity={searchEntity}
+                tabs={tabs}
+                defaultTab={initialTab}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

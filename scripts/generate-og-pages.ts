@@ -15,7 +15,7 @@ const BASE_URL = 'https://symmetricdevs.github.io/RecipeViewer';
 interface Item {
   displayName: string;
   resource: string;
-  itemDamage?: number;
+  metadata?: number;
 }
 
 interface Fluid {
@@ -31,7 +31,7 @@ interface RecipeIndexEntry {
 
 type ItemRecipeIndex = Record<string, RecipeIndexEntry>;
 type FluidRecipeIndex = Record<string, RecipeIndexEntry>;
-type OreDict = Record<string, { resource: string; itemDamage?: number }[]>;
+type OreDict = Record<string, { resource: string; metadata?: number }[]>;
 
 // Load compressed JSON file
 function loadCompressedJSON<T>(filePath: string): T {
@@ -56,7 +56,7 @@ function buildReverseOreDict(oreDict: OreDict): Map<string, string[]> {
 
   for (const [oreDictName, items] of Object.entries(oreDict)) {
     for (const item of items) {
-      const key = `${item.resource}:${item.itemDamage ?? 0}`;
+      const key = `${item.resource}:${item.metadata ?? 0}`;
       const existing = reverse.get(key) || [];
       existing.push(oreDictName);
       reverse.set(key, existing);
@@ -184,7 +184,7 @@ async function generateOGPages() {
   for (const item of items) {
     try {
       const resource = item.resource;
-      const damage = item.itemDamage ?? 0;
+      const damage = item.metadata ?? 0;
       const itemKey = `${resource}:${damage}`;
 
       // Get recipe counts

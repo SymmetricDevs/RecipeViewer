@@ -1,5 +1,7 @@
 import { inflate } from 'pako';
-import type { ItemRecipeIndex, FluidRecipeIndex } from '../types/recipeIndex';
+import type { ItemRecipeIndex, FluidRecipeIndex, MaterialRecipeIndex } from '../types/recipeIndex';
+import type { Material } from '../types/materials';
+import type { RecipeMapIndex, RecipePropsIndex } from '../types/recipeSearch';
 
 const BASE_PATH = import.meta.env.BASE_URL + 'data/';
 
@@ -124,6 +126,55 @@ export async function loadItemRecipeIndex(): Promise<ItemRecipeIndex> {
  */
 export async function loadFluidRecipeIndex(): Promise<FluidRecipeIndex> {
   return loadCompressedJSON<FluidRecipeIndex>('indexes/recipe-index-fluids.json.gz');
+}
+
+/**
+ * Loads all materials
+ */
+export async function loadMaterials(): Promise<Material[]> {
+  return loadCompressedJSON<Material[]>('materials.json.gz');
+}
+
+/**
+ * Loads material search index
+ */
+export async function loadMaterialSearchIndex() {
+  return loadCompressedJSON<any[]>('indexes/search-materials.json.gz');
+}
+
+/**
+ * Loads material recipe index
+ */
+export async function loadMaterialRecipeIndex(): Promise<MaterialRecipeIndex> {
+  return loadCompressedJSON<MaterialRecipeIndex>('indexes/recipe-index-materials.json.gz');
+}
+
+/**
+ * Loads item-to-material reverse lookup
+ */
+export async function loadItemToMaterial(): Promise<Record<string, { unlocalizedName: string; localizedName: string; color: number }>> {
+  return loadCompressedJSON<Record<string, { unlocalizedName: string; localizedName: string; color: number }>>('indexes/item-to-material.json.gz');
+}
+
+/**
+ * Loads fluid-to-material reverse lookup
+ */
+export async function loadFluidToMaterial(): Promise<Record<string, { unlocalizedName: string; localizedName: string }>> {
+  return loadCompressedJSON<Record<string, { unlocalizedName: string; localizedName: string }>>('indexes/fluid-to-material.json.gz');
+}
+
+/**
+ * Loads recipe map index (map name -> RecipeRef[])
+ */
+export async function loadRecipeMapIndex(): Promise<RecipeMapIndex> {
+  return loadCompressedJSON<RecipeMapIndex>('indexes/recipe-map-index.json.gz');
+}
+
+/**
+ * Loads recipe property index
+ */
+export async function loadRecipePropsIndex(): Promise<RecipePropsIndex> {
+  return loadCompressedJSON<RecipePropsIndex>('indexes/recipe-props-index.json.gz');
 }
 
 /**

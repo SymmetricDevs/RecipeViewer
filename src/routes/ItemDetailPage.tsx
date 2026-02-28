@@ -1,21 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useItemStore } from '../stores/useItemStore';
-import { useRecipeStore } from '../stores/useRecipeStore';
+import { useOreDictStore } from '../stores/useOreDictStore';
 import { ArrowLeft } from 'lucide-react';
-import { RecipeList } from '../components/recipes';
-import type { RecipesForItem } from '../types/recipeIndex';
+import RecipeSearchPanel from '../components/search/RecipeSearchPanel';
+import { loadItemToMaterial } from '../services/dataLoader';
+import type { SearchEntity } from '../types/recipeSearch';
 
 function ItemDetailPage() {
   const { resource, damage } = useParams<{ resource: string; damage: string }>();
   const [searchParams] = useSearchParams();
-  const initialTab = searchParams.get('tab') === 'input' ? 'input' : 'output';
+  const initialTab = searchParams.get('tab') === 'input' ? 1 : 0;
   const { items, fetchItems, getItemByResourceAndDamage } = useItemStore();
-  const { getRecipesForItem, indexLoading, indexError } = useRecipeStore();
+  const { oreDict, fetchOreDict } = useOreDictStore();
   const [item, setItem] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [recipes, setRecipes] = useState<RecipesForItem | null>(null);
-  const [recipesLoading, setRecipesLoading] = useState(false);
+  const [materialInfo, setMaterialInfo] = useState<{ unlocalizedName: string; localizedName: string; color: number } | null>(null);
 
   useEffect(() => {
     const loadItem = async () => {
@@ -32,22 +32,58 @@ function ItemDetailPage() {
     loadItem();
   }, [resource, damage, items]);
 
+  const searchEntity = useMemo<SearchEntity | undefined>(() => {
+    if (!item) return undefined;
+    return {
+      type: 'item',
+      key: `${item.resource}:${item.metadata ?? 0}`,
+      displayName: item.displayName,
+    };
+  }, [item]);
+
+  const tabs = useMemo(() => {
+    if (!searchEntity) return undefined;
+    return [
+      { label: 'As Output', query: { outputs: [searchEntity] } },
+      { label: 'As Input', query: { inputs: [searchEntity] } },
+    ];
+  }, [searchEntity]);
+
   useEffect(() => {
-    const loadRecipes = async () => {
+    const loadMaterialInfo = async () => {
       if (item) {
-        setRecipesLoading(true);
         try {
-          const itemRecipes = await getRecipesForItem(item.resource, item.itemDamage ?? 0);
-          setRecipes(itemRecipes);
-        } catch (err) {
-          console.error('Failed to load recipes:', err);
-        } finally {
-          setRecipesLoading(false);
+          const itemToMat = await loadItemToMaterial();
+          const key = `${item.resource}:${item.metadata ?? 0}`;
+          setMaterialInfo(itemToMat[key] || null);
+        } catch {
+          // Material lookup is optional
         }
       }
     };
-    loadRecipes();
+    loadMaterialInfo();
   }, [item]);
+
+  useEffect(() => {
+    fetchOreDict();
+  }, [fetchOreDict]);
+
+  // Find oredict entries containing this item
+  const oreDictEntries = useMemo(() => {
+    if (!item || Object.keys(oreDict).length === 0) return [];
+    const itemResource = item.resource;
+    const itemMeta = item.metadata ?? 0;
+    const entries: string[] = [];
+    for (const [name, stacks] of Object.entries(oreDict)) {
+      for (const stack of stacks) {
+        if (stack.resource === itemResource && (stack.metadata ?? 0) === itemMeta) {
+          entries.push(name);
+          break;
+        }
+      }
+    }
+    return entries;
+  }, [item, oreDict]);
 
   if (loading) {
     return (
@@ -78,7 +114,16 @@ function ItemDetailPage() {
       </Link>
 
       <div className="bg-gray-800 rounded-lg shadow-md p-8 border border-gray-700">
-        <h1 className="text-3xl font-bold text-gray-100 mb-6">{item.displayName}</h1>
+        <div className="flex items-center mb-6">
+          {materialInfo && (
+            <div
+              className="w-2 h-10 rounded-full mr-4 shrink-0"
+              style={{ backgroundColor: `#${materialInfo.color.toString(16).padStart(6, '0')}` }}
+              title={`Material: ${materialInfo.localizedName}`}
+            />
+          )}
+          <h1 className="text-3xl font-bold text-gray-100">{item.displayName}</h1>
+        </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div>
@@ -118,22 +163,55 @@ function ItemDetailPage() {
                 <dt className="text-sm font-medium text-gray-400">Translation Key</dt>
                 <dd className="text-gray-100 font-mono text-sm">{item.translationKey}</dd>
               </div>
+              {materialInfo && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-400">Material</dt>
+                  <dd>
+                    <Link
+                      to={`/materials/${encodeURIComponent(materialInfo.unlocalizedName)}`}
+                      className="text-cyan-400 hover:text-cyan-300 transition"
+                    >
+                      {materialInfo.localizedName}
+                    </Link>
+                  </dd>
+                </div>
+              )}
             </dl>
           </div>
         </div>
 
-        <div className="mt-8">
-          <h2 className="text-xl font-semibold text-gray-200 mb-4">Recipes</h2>
-          <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
-            <RecipeList
-              asInput={recipes?.asInput || []}
-              asOutput={recipes?.asOutput || []}
-              loading={recipesLoading || indexLoading}
-              error={indexError}
-              initialTab={initialTab}
-            />
+        {oreDictEntries.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold text-gray-200 mb-4">
+              Ore Dictionary ({oreDictEntries.length})
+            </h2>
+            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              <div className="flex flex-wrap gap-2">
+                {oreDictEntries.map(name => (
+                  <span
+                    key={name}
+                    className="px-3 py-1 bg-gray-700 text-gray-200 rounded text-sm font-mono"
+                  >
+                    {name}
+                  </span>
+                ))}
+              </div>
+            </div>
           </div>
-        </div>
+        )}
+
+        {searchEntity && (
+          <div className="mt-8">
+            <h2 className="text-xl font-semibold text-gray-200 mb-4">Recipes</h2>
+            <div className="bg-gray-900 rounded-lg p-4 border border-gray-700">
+              <RecipeSearchPanel
+                contextEntity={searchEntity}
+                tabs={tabs}
+                defaultTab={initialTab}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -16,6 +16,12 @@ function Header() {
             <Link to="/fluids" className="hover:text-cyan-400 transition">
               Fluids
             </Link>
+            <Link to="/materials" className="hover:text-cyan-400 transition">
+              Materials
+            </Link>
+            <Link to="/recipes" className="hover:text-cyan-400 transition">
+              Recipes
+            </Link>
           </nav>
         </div>
       </div>

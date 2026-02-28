@@ -5,6 +5,9 @@ import ItemsPage from './routes/ItemsPage';
 import ItemDetailPage from './routes/ItemDetailPage';
 import FluidsPage from './routes/FluidsPage';
 import FluidDetailPage from './routes/FluidDetailPage';
+import MaterialsPage from './routes/MaterialsPage';
+import MaterialDetailPage from './routes/MaterialDetailPage';
+import RecipeSearchPage from './routes/RecipeSearchPage';
 
 function App() {
   return (
@@ -18,8 +21,32 @@ function App() {
             <Route path="/items/:resource/:damage" element={<ItemDetailPage />} />
             <Route path="/fluids" element={<FluidsPage />} />
             <Route path="/fluids/:unlocalizedName" element={<FluidDetailPage />} />
+            <Route path="/materials" element={<MaterialsPage />} />
+            <Route path="/materials/:unlocalizedName" element={<MaterialDetailPage />} />
+            <Route path="/recipes" element={<RecipeSearchPage />} />
           </Routes>
         </main>
+        <footer className="border-t border-gray-800 py-6 mt-8">
+          <div className="container mx-auto px-6 flex items-center justify-center gap-6 text-sm text-gray-500">
+            <a
+              href="https://www.curseforge.com/minecraft/modpacks/supersymmetry"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition"
+            >
+              Download Supersymmetry! (CurseForge)
+            </a>
+            <span className="text-gray-700">|</span>
+            <a
+              href="https://github.com/SymmetricDevs/RecipeViewer"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-cyan-400 transition"
+            >
+              Website Source (GitHub)
+            </a>
+          </div>
+        </footer>
       </div>
     </Router>
   );

@@ -11,7 +11,7 @@ export interface RecipeIndexEntry {
   asOutput: RecipeRef[];
 }
 
-// Full recipe index for items: key is "resource:itemDamage"
+// Full recipe index for items: key is "resource:metadata"
 export type ItemRecipeIndex = Record<string, RecipeIndexEntry>;
 
 // Full recipe index for fluids: key is "unlocalizedName"
@@ -33,4 +33,21 @@ export interface RecipesForItem {
 export interface RecipesForFluid {
   asInput: LoadedRecipe[];
   asOutput: LoadedRecipe[];
+}
+
+// Material recipe index entry with production/interconversion/other split
+export interface MaterialRecipeIndexEntry {
+  production: RecipeRef[];
+  interconversion: RecipeRef[];
+  other: RecipeRef[];
+}
+
+// Full recipe index for materials: key is "unlocalizedName"
+export type MaterialRecipeIndex = Record<string, MaterialRecipeIndexEntry>;
+
+// Recipes grouped for a material
+export interface RecipesForMaterial {
+  production: LoadedRecipe[];
+  interconversion: LoadedRecipe[];
+  other: LoadedRecipe[];
 }

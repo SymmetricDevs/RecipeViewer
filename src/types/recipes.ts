@@ -13,9 +13,12 @@ export interface GTRecipeInput {
 
 export interface RecipeProperty {
   propertyKey: string;
-  propertyClass: string;
-  propertyHash: number;
-  propertyValueClass: string;
+  // Property-specific values
+  dimensions?: number[];
+  cleanroom?: string;
+  temperature?: number;
+  cells?: number;
+  eu_to_start?: number;
 }
 
 export interface Recipe {
@@ -98,4 +101,6 @@ export interface RecipeDump {
   crafting: CraftingRecipe[];
   smelting: SmeltingRecipe[];
   gtMTEs: Record<string, Machine>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  materials?: Record<string, any>;
 }

@@ -4,3 +4,4 @@ export { default as MachineRecipeCard } from './MachineRecipeCard';
 export { default as CraftingRecipeCard } from './CraftingRecipeCard';
 export { default as SmeltingRecipeCard } from './SmeltingRecipeCard';
 export { default as RecipeList } from './RecipeList';
+export { default as MaterialRecipeList } from './MaterialRecipeList';

@@ -91,7 +91,7 @@ Builds to `docs/` directory for GitHub Pages. Vite config sets custom middleware
 ## Recipe System
 
 The recipe system uses an indexing approach:
-- **Item key format**: `"resource:itemDamage"` (supports wildcards at damage 32767)
+- **Item key format**: `"resource:metadata"` (supports wildcards at metadata 32767)
 - **Fluid key format**: `"unlocalizedName"`
 - **Each entry tracks**: `asInput` (consumed by recipes) and `asOutput` (produced by recipes)
 - **Recipe types**: Machine (GregTech), Crafting (vanilla shaped/shapeless), Smelting (furnace)

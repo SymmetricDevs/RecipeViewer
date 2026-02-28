@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { loadMetadata } from '../services/dataLoader';
-import { Package, Droplet, Wrench } from 'lucide-react';
+import { Package, Droplet, Wrench, Atom } from 'lucide-react';
 
 function HomePage() {
   const [stats, setStats] = useState<any>(null);
@@ -34,12 +34,12 @@ function HomePage() {
           Supersymmetry Recipe Viewer
         </h1>
         <p className="text-xl text-gray-400">
-          Browse items, fluids, and recipes from Supersymmetry
+          Browse items, fluids, materials, and recipes from Supersymmetry
         </p>
       </div>
 
       {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <Link
             to="/items"
             className="bg-gray-800 rounded-lg shadow-md p-6 hover:bg-gray-750 hover:border-cyan-500 border border-gray-700 transition"
@@ -68,7 +68,24 @@ function HomePage() {
             <p className="text-gray-400 mt-2">Browse all fluids</p>
           </Link>
 
-          <div className="bg-gray-800 rounded-lg shadow-md p-6 border border-gray-700">
+          <Link
+            to="/materials"
+            className="bg-gray-800 rounded-lg shadow-md p-6 hover:bg-gray-750 hover:border-cyan-500 border border-gray-700 transition"
+          >
+            <div className="flex items-center mb-4">
+              <Atom className="h-8 w-8 text-cyan-400 mr-3" />
+              <h2 className="text-2xl font-bold text-gray-100">Materials</h2>
+            </div>
+            <p className="text-3xl font-bold text-cyan-400">
+              {stats.materials?.toLocaleString() || 'N/A'}
+            </p>
+            <p className="text-gray-400 mt-2">Browse all materials</p>
+          </Link>
+
+          <Link
+            to="/recipes"
+            className="bg-gray-800 rounded-lg shadow-md p-6 hover:bg-gray-750 hover:border-cyan-500 border border-gray-700 transition"
+          >
             <div className="flex items-center mb-4">
               <Wrench className="h-8 w-8 text-cyan-400 mr-3" />
               <h2 className="text-2xl font-bold text-gray-100">Recipes</h2>
@@ -76,8 +93,8 @@ function HomePage() {
             <p className="text-3xl font-bold text-cyan-400">
               {stats.totalRecipes?.toLocaleString() || 'N/A'}
             </p>
-            <p className="text-gray-400 mt-2">Total recipes</p>
-          </div>
+            <p className="text-gray-400 mt-2">Search all recipes</p>
+          </Link>
         </div>
       )}
 
@@ -89,6 +106,7 @@ function HomePage() {
         <ul className="list-disc list-inside text-gray-400 space-y-2">
           <li>{stats?.items.toLocaleString()} unique items</li>
           <li>{stats?.fluids.toLocaleString()} fluids</li>
+          <li>{stats?.materials?.toLocaleString()} materials</li>
           <li>{stats?.totalRecipes?.toLocaleString()} total recipes</li>
           <li className="ml-4">{stats?.crafting.toLocaleString()} crafting recipes</li>
           <li className="ml-4">{stats?.smelting.toLocaleString()} smelting recipes</li>

@@ -23,7 +23,7 @@ function SmeltingRecipeCard({ recipe }: SmeltingRecipeCardProps) {
         {recipe.input?.resource ? (
           <ItemSlot
             resource={recipe.input.resource}
-            itemDamage={recipe.input.itemDamage ?? 0}
+            metadata={recipe.input.metadata ?? 0}
             count={recipe.input.count || 1}
           />
         ) : (
@@ -41,7 +41,7 @@ function SmeltingRecipeCard({ recipe }: SmeltingRecipeCardProps) {
         {recipe.output?.resource ? (
           <ItemSlot
             resource={recipe.output.resource}
-            itemDamage={recipe.output.itemDamage ?? 0}
+            metadata={recipe.output.metadata ?? 0}
             count={recipe.output.count || 1}
           />
         ) : (

@@ -4,7 +4,6 @@ export interface ItemStack {
   resource: string;
   count?: number;
   metadata?: number;
-  itemDamage?: number;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   nbt?: any;
 }

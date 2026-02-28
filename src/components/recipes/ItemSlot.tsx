@@ -2,17 +2,18 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useItemStore } from '../../stores/useItemStore';
 import { useEffect, useMemo, useState } from 'react';
 import type { Item } from '../../types/items';
+import { loadItemToMaterial } from '../../services/dataLoader';
 
 interface ItemStack {
   resource: string;
-  itemDamage?: number;
+  metadata?: number;
   count?: number;
   nbt?: { Configuration?: number; [key: string]: unknown };
 }
 
 interface ItemSlotProps {
   resource: string;
-  itemDamage: number;
+  metadata: number;
   count?: number;
   chance?: number;
   nonConsumable?: boolean;
@@ -27,7 +28,7 @@ const CYCLE_INTERVAL_MS = 1000;
 
 function ItemSlot({
   resource,
-  itemDamage,
+  metadata,
   count = 1,
   chance,
   nonConsumable,
@@ -39,12 +40,17 @@ function ItemSlot({
   const { items, fetchItems } = useItemStore();
   const navigate = useNavigate();
   const [cycleIndex, setCycleIndex] = useState(0);
+  const [itemToMaterial, setItemToMaterial] = useState<Record<string, { color: number }> | null>(null);
 
   useEffect(() => {
     if (items.length === 0) {
       fetchItems();
     }
   }, [items.length, fetchItems]);
+
+  useEffect(() => {
+    loadItemToMaterial().then(setItemToMaterial).catch(() => {});
+  }, []);
 
   // Cycle through alternatives
   useEffect(() => {
@@ -62,8 +68,8 @@ function ItemSlot({
     if (alternatives && alternatives.length > 0) {
       return alternatives[cycleIndex];
     }
-    return { resource, itemDamage, nbt };
-  }, [alternatives, cycleIndex, resource, itemDamage, nbt]);
+    return { resource, metadata, nbt };
+  }, [alternatives, cycleIndex, resource, metadata, nbt]);
 
   // Derive item info from items array
   const { item, displayName } = useMemo((): { item: Item | null; displayName: string } => {
@@ -74,7 +80,7 @@ function ItemSlot({
     const foundItem = items.find(
       (i) =>
         i.resource === currentStack.resource &&
-        (i.itemDamage === (currentStack.itemDamage ?? 0) || (currentStack.itemDamage ?? 0) === 32767)
+        (i.metadata === (currentStack.metadata ?? 0) || (currentStack.metadata ?? 0) === 32767)
     );
 
     if (foundItem) {
@@ -88,12 +94,12 @@ function ItemSlot({
   const handleContextMenu = (e: React.MouseEvent) => {
     if (item) {
       e.preventDefault();
-      navigate(`/items/${encodeURIComponent(item.resource)}/${item.itemDamage ?? 0}?tab=input`);
+      navigate(`/items/${encodeURIComponent(item.resource)}/${item.metadata ?? 0}?tab=input`);
     }
   };
 
   // Check if this is a Programmed Circuit
-  const isProgrammedCircuit = currentStack.resource === 'gregtech:meta_item_1' && (currentStack.itemDamage ?? 0) === 461;
+  const isProgrammedCircuit = currentStack.resource === 'gregtech:meta_item_1' && (currentStack.metadata ?? 0) === 461;
   const circuitConfig = isProgrammedCircuit && currentStack.nbt?.Configuration !== undefined ? currentStack.nbt.Configuration : null;
 
   // Only truncate very long names
@@ -121,7 +127,7 @@ function ItemSlot({
     for (const alt of displayAlts) {
       const altItem = items.find(
         (i) => i.resource === alt.resource &&
-               (i.itemDamage === (alt.itemDamage ?? 0) || (alt.itemDamage ?? 0) === 32767)
+               (i.metadata === (alt.metadata ?? 0) || (alt.metadata ?? 0) === 32767)
       );
       const altName = altItem?.displayName || alt.resource.split(':')[1] || alt.resource;
       lines.push(`  • ${altName}`);
@@ -144,13 +150,22 @@ function ItemSlot({
 
     const lines: string[] = [];
     lines.push(`${displayName}${count > 1 ? ` x${count}` : ''}${chance ? ` (${(chance / 100).toFixed(1)}%)` : ''}${nonConsumable ? ' (Catalyst)' : ''}`);
-    lines.push(`${resource}:${itemDamage}`);
+    lines.push(`${resource}:${metadata}`);
     return lines.join('\n');
-  }, [alternatives, displayName, count, chance, nonConsumable, resource, itemDamage]);
+  }, [alternatives, displayName, count, chance, nonConsumable, resource, metadata]);
 
   const tooltip = alternativesTooltip || singleItemTooltip || '';
 
   const hasAlternatives = alternatives && alternatives.length > 1;
+
+  // Material color for current item
+  const materialColor = useMemo(() => {
+    if (!itemToMaterial) return null;
+    const key = `${currentStack.resource}:${currentStack.metadata ?? 0}`;
+    const mat = itemToMaterial[key];
+    if (!mat || mat.color === 0) return null;
+    return `#${mat.color.toString(16).padStart(6, '0')}`;
+  }, [itemToMaterial, currentStack]);
 
   const content = (
     <div
@@ -162,6 +177,7 @@ function ItemSlot({
         ${hasAlternatives ? 'ring-1 ring-purple-500' : ''}
         ${className}
       `}
+      style={materialColor ? { borderBottomWidth: '3px', borderBottomColor: materialColor } : undefined}
       title={tooltip}
     >
       {/* Item name */}
@@ -202,7 +218,7 @@ function ItemSlot({
   if (item) {
     return (
       <Link
-        to={`/items/${encodeURIComponent(item.resource)}/${item.itemDamage ?? 0}`}
+        to={`/items/${encodeURIComponent(item.resource)}/${item.metadata ?? 0}`}
         className="block"
         onContextMenu={handleContextMenu}
       >

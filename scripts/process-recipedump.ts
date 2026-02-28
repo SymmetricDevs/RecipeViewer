@@ -20,6 +20,7 @@ interface RecipeDump {
   crafting: any[];
   smelting: any[];
   gtMTEs: Record<string, any>;
+  materials?: Record<string, any>;
 }
 
 // Recipe index types
@@ -37,9 +38,9 @@ interface RecipeIndexEntry {
 type ItemRecipeIndex = Record<string, RecipeIndexEntry>;
 type FluidRecipeIndex = Record<string, RecipeIndexEntry>;
 
-// Helper to create item key from resource and damage
-function makeItemKey(resource: string, itemDamage: number): string {
-  return `${resource}:${itemDamage}`;
+// Helper to create item key from resource and metadata
+function makeItemKey(resource: string, metadata: number): string {
+  return `${resource}:${metadata}`;
 }
 
 // Helper to ensure an entry exists in the index
@@ -54,11 +55,11 @@ function ensureIndexEntry(index: Record<string, RecipeIndexEntry>, key: string):
 function addItemToIndex(
   index: ItemRecipeIndex,
   resource: string,
-  itemDamage: number,
+  metadata: number,
   ref: RecipeRef,
   asOutput: boolean
 ): void {
-  const key = makeItemKey(resource, itemDamage);
+  const key = makeItemKey(resource, metadata);
   const entry = ensureIndexEntry(index, key);
 
   if (asOutput) {
@@ -68,7 +69,7 @@ function addItemToIndex(
   }
 
   // Also add wildcard entry (32767) to index for lookup purposes
-  if (itemDamage === 32767) {
+  if (metadata === 32767) {
     // This is already a wildcard, no need to duplicate
   }
 }
@@ -97,12 +98,12 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
 
     // Input
     if (recipe.input?.resource) {
-      addItemToIndex(itemIndex, recipe.input.resource, recipe.input.itemDamage ?? 0, ref, false);
+      addItemToIndex(itemIndex, recipe.input.resource, recipe.input.metadata ?? 0, ref, false);
     }
 
     // Output
     if (recipe.output?.resource) {
-      addItemToIndex(itemIndex, recipe.output.resource, recipe.output.itemDamage ?? 0, ref, true);
+      addItemToIndex(itemIndex, recipe.output.resource, recipe.output.metadata ?? 0, ref, true);
     }
   });
 
@@ -113,7 +114,7 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
 
     // Index output
     if (recipe.output?.resource) {
-      addItemToIndex(itemIndex, recipe.output.resource, recipe.output.itemDamage ?? 0, ref, true);
+      addItemToIndex(itemIndex, recipe.output.resource, recipe.output.metadata ?? 0, ref, true);
     }
 
     if (recipe.recipe) {
@@ -123,7 +124,7 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
           if (ingredient.validInputs) {
             for (const input of ingredient.validInputs) {
               if (input.resource) {
-                addItemToIndex(itemIndex, input.resource, input.itemDamage ?? 0, ref, false);
+                addItemToIndex(itemIndex, input.resource, input.metadata ?? 0, ref, false);
               }
             }
           }
@@ -142,7 +143,7 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
           if (ingredient.validInputs) {
             for (const input of ingredient.validInputs) {
               if (input.resource) {
-                addItemToIndex(itemIndex, input.resource, input.itemDamage ?? 0, ref, false);
+                addItemToIndex(itemIndex, input.resource, input.metadata ?? 0, ref, false);
               }
             }
           }
@@ -173,14 +174,14 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
             const oreDictItems = getOreDictItems(input.oreDict);
             for (const item of oreDictItems) {
               if (item.resource) {
-                addItemToIndex(itemIndex, item.resource, item.itemDamage ?? 0, ref, false);
+                addItemToIndex(itemIndex, item.resource, item.metadata ?? 0, ref, false);
               }
             }
           } else if (input.inputStacks) {
             // No OreDict, use inputStacks directly
             for (const stack of input.inputStacks) {
               if (stack.resource) {
-                addItemToIndex(itemIndex, stack.resource, stack.itemDamage ?? 0, ref, false);
+                addItemToIndex(itemIndex, stack.resource, stack.metadata ?? 0, ref, false);
               }
             }
           }
@@ -202,7 +203,7 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
       if (recipe.outputs) {
         for (const output of recipe.outputs) {
           if (output.resource) {
-            addItemToIndex(itemIndex, output.resource, output.itemDamage ?? 0, ref, true);
+            addItemToIndex(itemIndex, output.resource, output.metadata ?? 0, ref, true);
           }
         }
       }
@@ -211,7 +212,7 @@ function buildRecipeIndexes(data: RecipeDump): { itemIndex: ItemRecipeIndex; flu
       if (recipe.chancedOutputs) {
         for (const output of recipe.chancedOutputs) {
           if (output.resource) {
-            addItemToIndex(itemIndex, output.resource, output.itemDamage ?? 0, ref, true);
+            addItemToIndex(itemIndex, output.resource, output.metadata ?? 0, ref, true);
           }
         }
       }
@@ -295,6 +296,7 @@ function buildItemIndex(items: any[]) {
     id: index,
     displayName: item.displayName,
     resource: item.resource,
+    metadata: item.metadata ?? 0,
     translationKey: item.translationKey,
     rarity: item.rarity,
   }));
@@ -308,6 +310,382 @@ function buildFluidIndex(fluids: any[]) {
     localizedName: fluid.localizedName,
     unlocalizedName: fluid.unlocalizedName,
   }));
+}
+
+// Material recipe index types
+interface MaterialRecipeIndexEntry {
+  production: RecipeRef[];
+  interconversion: RecipeRef[];
+  other: RecipeRef[];
+}
+
+type MaterialRecipeIndex = Record<string, MaterialRecipeIndexEntry>;
+
+// Helper: resolve a recipe ref to its actual recipe object
+function resolveRecipe(ref: RecipeRef, data: RecipeDump): any | null {
+  switch (ref.type) {
+    case 'smelting':
+      return data.smelting[ref.index] || null;
+    case 'crafting':
+      return data.crafting[ref.index] || null;
+    case 'machine': {
+      const map = data.recipemaps[ref.map!];
+      return map?.recipes?.[ref.index] || null;
+    }
+  }
+  return null;
+}
+
+// Helper: get all output item keys from a recipe
+function getRecipeOutputItemKeys(ref: RecipeRef, recipe: any): string[] {
+  const keys: string[] = [];
+  switch (ref.type) {
+    case 'smelting':
+      if (recipe.output?.resource) keys.push(makeItemKey(recipe.output.resource, recipe.output.metadata ?? 0));
+      break;
+    case 'crafting':
+      if (recipe.output?.resource) keys.push(makeItemKey(recipe.output.resource, recipe.output.metadata ?? 0));
+      break;
+    case 'machine':
+      if (recipe.outputs) {
+        for (const o of recipe.outputs) {
+          if (o.resource) keys.push(makeItemKey(o.resource, o.metadata ?? 0));
+        }
+      }
+      if (recipe.chancedOutputs) {
+        for (const o of recipe.chancedOutputs) {
+          if (o.resource) keys.push(makeItemKey(o.resource, o.metadata ?? 0));
+        }
+      }
+      break;
+  }
+  return keys;
+}
+
+// Helper: get all output fluid names from a recipe
+function getRecipeOutputFluidNames(ref: RecipeRef, recipe: any): string[] {
+  const names: string[] = [];
+  if (ref.type === 'machine') {
+    if (recipe.fluidOutputs) {
+      for (const o of recipe.fluidOutputs) {
+        if (o.unlocalizedName) names.push(o.unlocalizedName);
+      }
+    }
+    if (recipe.chancedFluidOutputs) {
+      for (const o of recipe.chancedFluidOutputs) {
+        if (o.unlocalizedName) names.push(o.unlocalizedName);
+      }
+    }
+  }
+  return names;
+}
+
+// Helper: get all input item keys from a recipe
+function getRecipeInputItemKeys(ref: RecipeRef, recipe: any, oreDictKeys: string[], oreDict: Record<string, any[]>): string[] {
+  const keys: string[] = [];
+  switch (ref.type) {
+    case 'smelting':
+      if (recipe.input?.resource) keys.push(makeItemKey(recipe.input.resource, recipe.input.metadata ?? 0));
+      break;
+    case 'crafting':
+      if (recipe.recipe) {
+        const ingredients = recipe.recipe.keymap
+          ? Object.values(recipe.recipe.keymap) as any[]
+          : recipe.recipe.ingredients || [];
+        for (const ing of ingredients) {
+          if (ing.validInputs) {
+            for (const input of ing.validInputs) {
+              if (input.resource) keys.push(makeItemKey(input.resource, input.metadata ?? 0));
+            }
+          }
+        }
+      }
+      break;
+    case 'machine':
+      if (recipe.inputs) {
+        for (const input of recipe.inputs) {
+          if (input.oreDict !== undefined && input.oreDict >= 0) {
+            const oreDictName = oreDictKeys[input.oreDict];
+            const items = oreDict[oreDictName] || [];
+            for (const item of items) {
+              if (item.resource) keys.push(makeItemKey(item.resource, item.metadata ?? 0));
+            }
+          } else if (input.inputStacks) {
+            for (const stack of input.inputStacks) {
+              if (stack.resource) keys.push(makeItemKey(stack.resource, stack.metadata ?? 0));
+            }
+          }
+        }
+      }
+      break;
+  }
+  return keys;
+}
+
+// Helper: get all input fluid names from a recipe
+function getRecipeInputFluidNames(ref: RecipeRef, recipe: any): string[] {
+  const names: string[] = [];
+  if (ref.type === 'machine') {
+    if (recipe.inputsFluid) {
+      for (const input of recipe.inputsFluid) {
+        if (input.inputFluidStack?.unlocalizedName) names.push(input.inputFluidStack.unlocalizedName);
+      }
+    }
+  } else if (ref.type === 'crafting' && recipe.recipe) {
+    const ingredients = recipe.recipe.keymap
+      ? Object.values(recipe.recipe.keymap) as any[]
+      : recipe.recipe.ingredients || [];
+    for (const ing of ingredients) {
+      if (ing.fluid?.unlocalizedName) names.push(ing.fluid.unlocalizedName);
+    }
+  }
+  return names;
+}
+
+// Build the material recipe index with interconversion/other classification
+function buildMaterialRecipeIndex(
+  data: RecipeDump,
+  materials: Record<string, any>,
+  itemRecipeIndex: ItemRecipeIndex,
+  fluidRecipeIndex: FluidRecipeIndex,
+): MaterialRecipeIndex {
+  const materialIndex: MaterialRecipeIndex = {};
+  const oreDictKeys = Object.keys(data.oreDict);
+
+  for (const [matKey, mat] of Object.entries(materials)) {
+    // Collect the set of item keys and fluid names belonging to this material
+    const matItemKeys = new Set<string>();
+    const matFluidNames = new Set<string>();
+
+    if (mat.items) {
+      for (const itemObj of mat.items) {
+        // items may be {resource, count, metadata} objects from the dump
+        const key = typeof itemObj === 'string' ? itemObj : makeItemKey(itemObj.resource, itemObj.metadata ?? 0);
+        matItemKeys.add(key);
+      }
+    }
+    if (mat.fluids) {
+      for (const fluidName of mat.fluids) {
+        matFluidNames.add(fluidName);
+      }
+    }
+
+    // If no items or fluids, skip
+    if (matItemKeys.size === 0 && matFluidNames.size === 0) continue;
+
+    // Collect all unique recipe refs from item and fluid indexes
+    const refSet = new Set<string>(); // serialized ref for dedup
+    const allRefs: RecipeRef[] = [];
+
+    const addRef = (ref: RecipeRef) => {
+      const key = `${ref.type}:${ref.map || ''}:${ref.index}`;
+      if (!refSet.has(key)) {
+        refSet.add(key);
+        allRefs.push(ref);
+      }
+    };
+
+    for (const itemKey of matItemKeys) {
+      const entry = itemRecipeIndex[itemKey];
+      if (entry) {
+        for (const ref of entry.asInput) addRef(ref);
+        for (const ref of entry.asOutput) addRef(ref);
+      }
+    }
+
+    for (const fluidName of matFluidNames) {
+      const entry = fluidRecipeIndex[fluidName];
+      if (entry) {
+        for (const ref of entry.asInput) addRef(ref);
+        for (const ref of entry.asOutput) addRef(ref);
+      }
+    }
+
+    if (allRefs.length === 0) continue;
+
+    // Classify each ref as production, interconversion, or other
+    const production: RecipeRef[] = [];
+    const interconversion: RecipeRef[] = [];
+    const other: RecipeRef[] = [];
+
+    for (const ref of allRefs) {
+      const recipe = resolveRecipe(ref, data);
+      if (!recipe) {
+        other.push(ref);
+        continue;
+      }
+
+      const inputItemKeys = getRecipeInputItemKeys(ref, recipe, oreDictKeys, data.oreDict);
+      const inputFluidNames = getRecipeInputFluidNames(ref, recipe);
+      const outputItemKeys = getRecipeOutputItemKeys(ref, recipe);
+      const outputFluidNames = getRecipeOutputFluidNames(ref, recipe);
+
+      // Check if any input belongs to the material (items + fluids)
+      const hasInputFromMaterial =
+        inputItemKeys.some(k => matItemKeys.has(k)) ||
+        inputFluidNames.some(n => matFluidNames.has(n));
+
+      // Items-only checks (ignoring fluids entirely for production classification)
+      const hasItemInputFromMaterial =
+        inputItemKeys.some(k => matItemKeys.has(k));
+
+      // Check if any output belongs to the material (items + fluids, for interconversion)
+      const hasOutputFromMaterial =
+        outputItemKeys.some(k => matItemKeys.has(k)) ||
+        outputFluidNames.some(n => matFluidNames.has(n));
+
+      // ALL outputs belong to the material
+      const allOutputsBelongToMaterial =
+        (outputItemKeys.length > 0 || outputFluidNames.length > 0) &&
+        outputItemKeys.every(k => matItemKeys.has(k)) &&
+        outputFluidNames.every(n => matFluidNames.has(n));
+
+      if (hasInputFromMaterial && allOutputsBelongToMaterial) {
+        // Interconversion: material goes in AND all outputs are this material
+        interconversion.push(ref);
+      } else if (!hasItemInputFromMaterial && hasOutputFromMaterial) {
+        // Production: no material items in inputs, material items in outputs
+        // Fluids ignored entirely — prevents e.g. arc furnace + oxygen from matching
+        // Filter out spurious recycling recipes: if there's exactly one item input
+        // and it starts with "gregtech:machine", skip it
+        const isMachineRecycling =
+          inputItemKeys.length === 1 &&
+          (inputItemKeys[0].startsWith('gregtech:machine') || inputItemKeys[0].indexOf('casing') != -1 || inputItemKeys[0].startsWith('gregtech:meta_item_1'));
+        if (isMachineRecycling) {
+          other.push(ref);
+        } else {
+          production.push(ref);
+        }
+      } else {
+        other.push(ref);
+      }
+    }
+
+    materialIndex[matKey] = { production, interconversion, other };
+  }
+
+  return materialIndex;
+}
+
+// Voltage tier mapping for EUt → tier classification
+const VOLTAGE_TIER_MAX_EUT: Record<string, number> = {
+  ULV: 8,
+  LV: 32,
+  MV: 128,
+  HV: 512,
+  EV: 2048,
+  IV: 8192,
+  LuV: 32768,
+  ZPM: 131072,
+  UV: 524288,
+  UHV: 2097152,
+};
+
+const TIER_NAMES = Object.keys(VOLTAGE_TIER_MAX_EUT);
+
+function getVoltageTier(eut: number): string | null {
+  const absEut = Math.abs(eut);
+  for (const tier of TIER_NAMES) {
+    if (absEut <= VOLTAGE_TIER_MAX_EUT[tier]) {
+      return tier;
+    }
+  }
+  return null;
+}
+
+// Build recipe map index: map name -> RecipeRef[]
+function buildRecipeMapIndex(data: RecipeDump): Record<string, RecipeRef[]> {
+  const index: Record<string, RecipeRef[]> = {};
+
+  // Machine recipe maps
+  for (const [mapName, mapData] of Object.entries(data.recipemaps)) {
+    const recipes = (mapData as any).recipes || [];
+    index[mapName] = recipes.map((_: any, i: number) => ({
+      type: 'machine' as const,
+      map: mapName,
+      index: i,
+    }));
+  }
+
+  // Crafting pseudo-map
+  index['crafting'] = data.crafting.map((_: any, i: number) => ({
+    type: 'crafting' as const,
+    index: i,
+  }));
+
+  // Smelting pseudo-map
+  index['smelting'] = data.smelting.map((_: any, i: number) => ({
+    type: 'smelting' as const,
+    index: i,
+  }));
+
+  return index;
+}
+
+// Build recipe property index for efficient property-based queries
+interface RecipePropsIndex {
+  cleanroom: Record<string, RecipeRef[]>;
+  dimension: Record<string, RecipeRef[]>;
+  hasTemperature: RecipeRef[];
+  byTier: Record<string, RecipeRef[]>;
+}
+
+function buildRecipePropsIndex(data: RecipeDump): RecipePropsIndex {
+  const propsIndex: RecipePropsIndex = {
+    cleanroom: {},
+    dimension: {},
+    hasTemperature: [],
+    byTier: {},
+  };
+
+  // Initialize tier buckets
+  for (const tier of TIER_NAMES) {
+    propsIndex.byTier[tier] = [];
+  }
+
+  // Process machine recipes
+  for (const [mapName, mapData] of Object.entries(data.recipemaps)) {
+    const recipes = (mapData as any).recipes || [];
+
+    recipes.forEach((recipe: any, index: number) => {
+      const ref: RecipeRef = { type: 'machine', map: mapName, index };
+
+      // Classify by voltage tier
+      if (recipe.EUt !== undefined) {
+        const tier = getVoltageTier(recipe.EUt);
+        if (tier) {
+          propsIndex.byTier[tier].push(ref);
+        }
+      }
+
+      // Index recipe properties
+      if (recipe.properties) {
+        for (const prop of recipe.properties) {
+          if (prop.cleanroom) {
+            const key = prop.cleanroom;
+            if (!propsIndex.cleanroom[key]) {
+              propsIndex.cleanroom[key] = [];
+            }
+            propsIndex.cleanroom[key].push(ref);
+          }
+          if (prop.dimensions) {
+            for (const dim of prop.dimensions) {
+              const key = String(dim);
+              if (!propsIndex.dimension[key]) {
+                propsIndex.dimension[key] = [];
+              }
+              propsIndex.dimension[key].push(ref);
+            }
+          }
+          if (prop.temperature !== undefined) {
+            propsIndex.hasTemperature.push(ref);
+          }
+        }
+      }
+    });
+  }
+
+  return propsIndex;
 }
 
 async function processRecipeDump() {
@@ -347,6 +725,7 @@ async function processRecipeDump() {
   const stats = {
     items: data.items.length,
     fluids: data.fluids.length,
+    materials: Object.keys(data.materials || {}).length,
     recipemaps: Object.keys(data.recipemaps).length,
     crafting: data.crafting.length,
     smelting: data.smelting.length,
@@ -359,6 +738,7 @@ async function processRecipeDump() {
   console.log('Data Statistics:');
   console.log(`  Items: ${stats.items.toLocaleString()}`);
   console.log(`  Fluids: ${stats.fluids.toLocaleString()}`);
+  console.log(`  Materials: ${stats.materials.toLocaleString()}`);
   console.log(`  Recipe Maps: ${stats.recipemaps.toLocaleString()}`);
   console.log(`  Crafting Recipes: ${stats.crafting.toLocaleString()}`);
   console.log(`  Smelting Recipes: ${stats.smelting.toLocaleString()}`);
@@ -446,7 +826,104 @@ async function processRecipeDump() {
   writeCompressed(path.join(INDEXES_DIR, 'recipe-index-fluids.json'), fluidRecipeIndex);
   console.log(`    Fluids indexed: ${fluidIndexStats.totalFluids.toLocaleString()}, refs: ${fluidIndexStats.totalRefs.toLocaleString()}`);
 
+  // Build recipe map index
+  console.log('  Building recipe map index...');
+  const recipeMapIndex = buildRecipeMapIndex(data);
+  const mapIndexStats = Object.entries(recipeMapIndex).reduce(
+    (sum, [, refs]) => sum + refs.length, 0
+  );
+  writeCompressed(path.join(INDEXES_DIR, 'recipe-map-index.json'), recipeMapIndex);
+  console.log(`    Recipe map index: ${Object.keys(recipeMapIndex).length} maps, ${mapIndexStats.toLocaleString()} total refs`);
+
+  // Build recipe props index
+  console.log('  Building recipe props index...');
+  const recipePropsIndex = buildRecipePropsIndex(data);
+  const propsStats = {
+    cleanroomTypes: Object.keys(recipePropsIndex.cleanroom).length,
+    dimensionIds: Object.keys(recipePropsIndex.dimension).length,
+    withTemperature: recipePropsIndex.hasTemperature.length,
+    tieredRecipes: Object.values(recipePropsIndex.byTier).reduce((s, r) => s + r.length, 0),
+  };
+  writeCompressed(path.join(INDEXES_DIR, 'recipe-props-index.json'), recipePropsIndex);
+  console.log(`    Props: ${propsStats.cleanroomTypes} cleanroom types, ${propsStats.dimensionIds} dimensions, ${propsStats.withTemperature} with temperature, ${propsStats.tieredRecipes} tiered`);
+
   console.log('');
+
+  // Process materials
+  const materialsData = data.materials || {};
+  const materialCount = Object.keys(materialsData).length;
+
+  if (materialCount > 0) {
+    console.log(`Processing ${materialCount} materials:`);
+
+    // Helper: convert item objects from dump to item key strings
+    const itemObjToKey = (itemObj: any): string => makeItemKey(itemObj.resource, itemObj.metadata ?? 0);
+
+    // Convert Record to array for materials.json.gz
+    // Also normalize items from {resource, count, metadata} objects to "resource:metadata" strings
+    const materialsArray = Object.values(materialsData).map((mat: any) => {
+      const normalized = { ...mat };
+      if (mat.items) {
+        normalized.items = mat.items.map(itemObjToKey);
+      }
+      return normalized;
+    });
+    writeCompressed(path.join(OUTPUT_DIR, 'materials.json'), materialsArray);
+
+    // Build search index
+    const materialSearchIndex = Object.values(materialsData).map((mat: any, index: number) => ({
+      id: index,
+      unlocalizedName: mat.unlocalizedName,
+      localizedName: mat.localizedName,
+      chemicalFormula: mat.chemicalFormula || '',
+      modId: mat.modId,
+    }));
+    writeCompressed(path.join(INDEXES_DIR, 'search-materials.json'), materialSearchIndex);
+
+    // Build reverse lookup maps: item key -> material info, fluid name -> material info
+    const itemToMaterial: Record<string, { unlocalizedName: string; localizedName: string; color: number }> = {};
+    const fluidToMaterial: Record<string, { unlocalizedName: string; localizedName: string }> = {};
+
+    for (const mat of Object.values(materialsData) as any[]) {
+      const matInfo = { unlocalizedName: mat.unlocalizedName, localizedName: mat.localizedName, color: mat.color ?? 0 };
+      if (mat.items) {
+        for (const itemObj of mat.items) {
+          const key = itemObjToKey(itemObj);
+          itemToMaterial[key] = matInfo;
+        }
+      }
+      if (mat.fluids) {
+        for (const fluidName of mat.fluids) {
+          fluidToMaterial[fluidName] = matInfo;
+        }
+      }
+    }
+
+    writeCompressed(path.join(INDEXES_DIR, 'item-to-material.json'), itemToMaterial);
+    console.log(`    Item-to-material mappings: ${Object.keys(itemToMaterial).length.toLocaleString()}`);
+    writeCompressed(path.join(INDEXES_DIR, 'fluid-to-material.json'), fluidToMaterial);
+    console.log(`    Fluid-to-material mappings: ${Object.keys(fluidToMaterial).length.toLocaleString()}`);
+
+    // Build material recipe index
+    console.log('  Building material recipe index...');
+    const materialRecipeIndex = buildMaterialRecipeIndex(data, materialsData, itemRecipeIndex, fluidRecipeIndex);
+    const matIndexStats = {
+      totalMaterials: Object.keys(materialRecipeIndex).length,
+      productionRefs: Object.values(materialRecipeIndex).reduce(
+        (sum, entry) => sum + entry.production.length, 0
+      ),
+      interconversionRefs: Object.values(materialRecipeIndex).reduce(
+        (sum, entry) => sum + entry.interconversion.length, 0
+      ),
+      otherRefs: Object.values(materialRecipeIndex).reduce(
+        (sum, entry) => sum + entry.other.length, 0
+      ),
+    };
+    writeCompressed(path.join(INDEXES_DIR, 'recipe-index-materials.json'), materialRecipeIndex);
+    console.log(`    Materials indexed: ${matIndexStats.totalMaterials.toLocaleString()}, production refs: ${matIndexStats.productionRefs.toLocaleString()}, interconversion refs: ${matIndexStats.interconversionRefs.toLocaleString()}, other refs: ${matIndexStats.otherRefs.toLocaleString()}`);
+
+    console.log('');
+  }
 
   // Create metadata file
   const metadata = {

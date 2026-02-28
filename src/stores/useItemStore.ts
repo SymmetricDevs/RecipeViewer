@@ -88,7 +88,7 @@ export const useItemStore = create<ItemStore>((set, get) => ({
   getItemByResourceAndDamage: (resource: string, damage: number) => {
     const { items } = get();
     return items.find(
-      (item) => item.resource === resource && item.itemDamage === damage
+      (item) => item.resource === resource && item.metadata === damage
     ) || null;
   },
 }));

@@ -8,7 +8,7 @@ interface CraftingRecipeCardProps {
 
 interface ValidInput {
   resource: string;
-  itemDamage?: number;
+  metadata?: number;
   count?: number;
   nbt?: any;
 }
@@ -73,7 +73,7 @@ function CraftingRecipeCard({ recipe }: CraftingRecipeCardProps) {
             <ItemSlot
               key={idx}
               resource={firstInput.resource}
-              itemDamage={firstInput.itemDamage ?? 0}
+              metadata={firstInput.metadata ?? 0}
               count={firstInput.count || 1}
               alternatives={alternatives}
             />
@@ -110,7 +110,7 @@ function CraftingRecipeCard({ recipe }: CraftingRecipeCardProps) {
             <ItemSlot
               key={idx}
               resource={firstInput.resource}
-              itemDamage={firstInput.itemDamage ?? 0}
+              metadata={firstInput.metadata ?? 0}
               count={firstInput.count || 1}
               alternatives={alternatives}
             />
@@ -154,7 +154,7 @@ function CraftingRecipeCard({ recipe }: CraftingRecipeCardProps) {
           {recipe.output ? (
             <ItemSlot
               resource={recipe.output.resource}
-              itemDamage={recipe.output.itemDamage ?? 0}
+              metadata={recipe.output.metadata ?? 0}
               count={recipe.output.count || 1}
             />
           ) : (
