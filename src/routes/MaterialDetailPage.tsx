@@ -57,6 +57,9 @@ function MaterialDetailPage() {
       { label: 'Production', query: { category: 'production' as const, contains: [searchEntity] } },
       { label: 'Interconversion', query: { category: 'interconversion' as const, contains: [searchEntity] } },
       { label: 'Other', query: { category: 'other' as const, contains: [searchEntity] } },
+      { label: 'All', query: { contains: [searchEntity] }},
+      { label: 'As Output', query: { outputs: [searchEntity] }},
+      { label: 'As Input', query: { inputs: [searchEntity] }}
     ];
   }, [searchEntity]);
 

@@ -86,6 +86,11 @@ function RecipeSearchPanel({ contextEntity, tabs, defaultTab = 0, autoFocus }: R
       });
     }
 
+    // Mark tab chips as locked (non-removable)
+    for (const chip of tabChips) {
+      chip.locked = true;
+    }
+
     return [...tabChips, ...extraChips];
   }, [contextEntity, tabs]);
 

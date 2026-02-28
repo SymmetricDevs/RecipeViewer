@@ -7,6 +7,15 @@ interface SearchFieldChipProps {
 }
 
 function SearchFieldChip({ chip, onRemove }: SearchFieldChipProps) {
+  if (chip.locked) {
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-800 text-sm rounded border border-gray-700 text-gray-500">
+        <span>{chip.field}:</span>
+        <span className="text-gray-400">{chip.value}</span>
+      </span>
+    );
+  }
+
   return (
     <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-700 text-sm rounded border border-gray-600">
       <span className="text-gray-400">{chip.field}:</span>

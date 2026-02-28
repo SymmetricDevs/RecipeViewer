@@ -269,8 +269,12 @@ function RecipeSearchBar({ chips, onAddChip, onRemoveChip, autoFocus }: RecipeSe
     } else if (e.key === 'Backspace' && inputValue === '') {
       if (activeField) {
         setActiveField(null);
-      } else if (chips.length > 0) {
-        onRemoveChip(chips[chips.length - 1].id);
+      } else {
+        // Find the last non-locked chip to remove
+        const lastRemovable = [...chips].reverse().find(c => !c.locked);
+        if (lastRemovable) {
+          onRemoveChip(lastRemovable.id);
+        }
       }
     } else if (e.key === 'Tab') {
       // Tab selects current suggestion

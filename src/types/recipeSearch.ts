@@ -33,6 +33,7 @@ export interface QueryChip {
   value: string;      // display value
   entity?: SearchEntity; // resolved entity for item/fluid/material fields
   rawValue?: string | number; // raw value for numeric/tier fields
+  locked?: boolean;   // true for context chips that can't be removed
 }
 
 export type FieldValueType = 'entity' | 'map' | 'tier' | 'number' | 'range' | 'category' | 'cleanroom';
