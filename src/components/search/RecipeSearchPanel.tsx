@@ -29,6 +29,12 @@ function RecipeSearchPanel({ contextEntity, tabs, defaultTab = 0, autoFocus }: R
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
+  // Sync activeTab with defaultTab when it changes (e.g., from URL query param)
+  useEffect(() => {
+    setActiveTab(defaultTab);
+    setPage(1);
+  }, [defaultTab]);
+
   // Track the initial load
   const initialLoadDone = useRef(false);
 
